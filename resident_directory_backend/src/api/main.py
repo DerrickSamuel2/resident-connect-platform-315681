@@ -25,10 +25,24 @@ app = FastAPI(
     openapi_tags=openapi_tags,
 )
 
-cors_origins = os.getenv("CORS_ALLOW_ORIGINS", "*").split(",")
+# CORS:
+# - In preview/dev we need to allow the React frontend (typically on :3000).
+# - Use CORS_ALLOW_ORIGINS if provided (comma-separated list).
+# - If not provided, default to common local/preview origins.
+cors_env = os.getenv("CORS_ALLOW_ORIGINS", "").strip()
+if cors_env:
+    allow_origins = [o.strip() for o in cors_env.split(",") if o.strip()]
+else:
+    allow_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        # Some environments expose a preview origin; allowing "*" is not compatible with credentials.
+        # If you need additional origins, set CORS_ALLOW_ORIGINS explicitly.
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in cors_origins] if cors_origins else ["*"],
+    allow_origins=allow_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
